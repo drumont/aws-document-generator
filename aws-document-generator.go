@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	// "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -24,6 +25,22 @@ func NewAwsDocumentGeneratorStack(scope constructs.Construct, id string, props *
 	// queue := awssqs.NewQueue(stack, jsii.String("AwsDocumentGeneratorQueue"), &awssqs.QueueProps{
 	// 	VisibilityTimeout: awscdk.Duration_Seconds(jsii.Number(300)),
 	// })
+
+	helloFunction := awslambda.NewFunction(stack, jsii.String("HelloWorldFunction"), &awslambda.FunctionProps{
+		Runtime:      awslambda.Runtime_PROVIDED_AL2(),
+		Code:         awslambda.Code_FromAsset(jsii.String("lambda"), nil),
+		Handler:      jsii.String("bootstrap"),
+		Architecture: awslambda.Architecture_ARM_64(),
+	})
+
+	api := awsapigateway.NewLambdaRestApi(stack, jsii.String("Api"), &awsapigateway.LambdaRestApiProps{
+		Handler:     helloFunction,
+		Proxy:       jsii.Bool(false),
+		RestApiName: jsii.String("TestRestApi"),
+	})
+
+	helloResource := api.Root().AddResource(jsii.String("hello"), nil)
+	helloResource.AddMethod(jsii.String("GET"), nil, nil)
 
 	return stack
 }
