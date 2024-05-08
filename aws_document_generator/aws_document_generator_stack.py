@@ -45,7 +45,7 @@ class AwsDocumentGeneratorStack(Stack):
                                                     "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
                                                 ]
                                             )),
-            handler="generate_pdf.lambda_handler",
+            handler="generate.generate_pdf.lambda_handler",
             environment={
                 "BUCKET_NAME": document_bucket.bucket_name
             }
