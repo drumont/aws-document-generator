@@ -8,7 +8,7 @@ from aws_cdk import (
     aws_apigateway as _gateway,
     aws_s3 as _s3,
     aws_iam as _iam,
-    aws_s3objectlambda as _s3objectlambda
+    aws_s3objectlambda as _s3objectlambda, BundlingOptions
 )
 from constructs import Construct
 
@@ -32,23 +32,19 @@ class AwsDocumentGeneratorStack(Stack):
 
         )
 
-        document_bucket.add_to_resource_policy(
-            _iam.PolicyStatement(
-                actions=["*"],
-                principals=[_iam.AnyPrincipal()],
-                resources=[
-                    document_bucket.bucket_arn,
-                    document_bucket.arn_for_objects("*")
-                ]
-            )
-        )
-
         generate_pdf_function = _lambda.Function(
             self,
             "generate-pdf-function",
             function_name="generate-pdf-function",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            code=_lambda.Code.from_asset("lambda"),
+            code=_lambda.Code.from_asset(path="lambda",
+                                         bundling=BundlingOptions(
+                                                image=_lambda.Runtime.PYTHON_3_12.bundling_image,
+                                                command=[
+                                                    "bash", "-c",
+                                                    "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                                                ]
+                                            )),
             handler="generate_pdf.lambda_handler",
             environment={
                 "BUCKET_NAME": document_bucket.bucket_name
