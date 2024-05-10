@@ -37,14 +37,7 @@ class AwsDocumentGeneratorStack(Stack):
             "generate-pdf-function",
             function_name="generate-pdf-function",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            code=_lambda.Code.from_asset(path="lambda",
-                                         bundling=BundlingOptions(
-                                                image=_lambda.Runtime.PYTHON_3_12.bundling_image,
-                                                command=[
-                                                    "bash", "-c",
-                                                    "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
-                                                ]
-                                            )),
+            code=_lambda.DockerImageCode.from_image_asset(directory="lambda/generate"),
             handler="generate.generate_pdf.lambda_handler",
             environment={
                 "BUCKET_NAME": document_bucket.bucket_name
