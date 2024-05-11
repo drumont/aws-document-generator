@@ -46,9 +46,17 @@ def lambda_handler(event, context):
         css = css_file.getvalue().decode('utf-8')
 
         template: str = render_template(html_content, variables)
-        pdf = HTML(string=template, encoding="utf-8").write_pdf(stylesheets=[CSS(string=css)])
+        document = HTML(string=template, encoding="utf-8")
 
-        pdf_key: str = f"generated/{str(uuid.uuid4())}.pdf"
+        logger.info("Generating PDF")
+
+        pdf = document.write_pdf(stylesheets=[CSS(string=css)])
+
+        pdf_key: str = f"{str(uuid.uuid4())}.pdf"
+
+        logger.info(f"PDF generated {pdf.decode('utf-8')}")
+
+        logger.info(f"Uploading {pdf_key} to {bucket_name}")
 
         s3_client.put_object(Bucket=bucket_name, Key=pdf_key, Body=pdf)
 

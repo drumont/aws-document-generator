@@ -32,13 +32,14 @@ class AwsDocumentGeneratorStack(Stack):
 
         )
 
-        generate_pdf_function = _lambda.Function(
+        generate_pdf_function = _lambda.DockerImageFunction(
             self,
             "generate-pdf-function",
             function_name="generate-pdf-function",
-            runtime=_lambda.Runtime.PYTHON_3_12,
             code=_lambda.DockerImageCode.from_image_asset(directory="lambda/generate"),
-            handler="generate.generate_pdf.lambda_handler",
+            timeout=Stack.Duration.minutes(5),
+            memory_size=4096,
+            architecture=_lambda.Architecture.ARM_64,
             environment={
                 "BUCKET_NAME": document_bucket.bucket_name
             }
