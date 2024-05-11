@@ -54,8 +54,6 @@ def lambda_handler(event, context):
 
         pdf_key: str = f"{str(uuid.uuid4())}.pdf"
 
-        logger.info(f"PDF generated {pdf.decode('utf-8')}")
-
         logger.info(f"Uploading {pdf_key} to {bucket_name}")
 
         s3_client.put_object(Bucket=bucket_name, Key=pdf_key, Body=pdf)

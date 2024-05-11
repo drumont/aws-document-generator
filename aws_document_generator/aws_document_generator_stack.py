@@ -2,6 +2,7 @@ from aws_cdk import (
     # Duration,
     Stack,
     Aws,
+    Duration,
     CfnOutput,
     # aws_sqs as sqs,
     aws_lambda as _lambda,
@@ -37,8 +38,8 @@ class AwsDocumentGeneratorStack(Stack):
             "generate-pdf-function",
             function_name="generate-pdf-function",
             code=_lambda.DockerImageCode.from_image_asset(directory="lambda/generate"),
-            timeout=Stack.Duration.minutes(5),
-            memory_size=4096,
+            timeout=Duration.minutes(5),
+            memory_size=3008,
             architecture=_lambda.Architecture.ARM_64,
             environment={
                 "BUCKET_NAME": document_bucket.bucket_name
