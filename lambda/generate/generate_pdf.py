@@ -59,7 +59,13 @@ def lambda_handler(event, context):
 
         logger.info(f"Uploading {pdf_key} to {bucket_name}")
 
-        s3_client.put_object(Bucket=bucket_name, Key=pdf_key, Body=pdf)
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=pdf_key,
+            Body=pdf,
+            ContentType="application/pdf",
+            Metadata={"document-id": document_id},
+        )
 
         logger.info(f"Storing {pdf_key} in {document_table} store")
 
@@ -69,7 +75,7 @@ def lambda_handler(event, context):
                 "pdf_key": {"S": pdf_key},
                 "document_id": {"S": document_id},
                 "document_url": {
-                    "S": f"https://{bucket_name}.s3.amazonaws.com/generated/{pdf_key}"
+                    "S": f"https://{bucket_name}.s3.amazonaws.com/{pdf_key}"
                 },
                 "variables": {"S": json.dumps(variables)},
             },
@@ -77,10 +83,26 @@ def lambda_handler(event, context):
 
         document = {
             "document_id": document_id,
-            "document_url": f"https://{bucket_name}.s3.amazonaws.com/generated/{pdf_key}",
+            "document_url": f"https://{bucket_name}.s3.amazonaws.com/{pdf_key}",
         }
 
-        return {"statusCode": 200, "body": json.dumps(document)}
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "OPTIONS,POST",
+            },
+            "body": json.dumps(document),
+        }
 
     except Exception as exec_code:
-        return {"statusCode": 500, "body": str(exec_code)}
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "OPTIONS,GET",
+            },
+            "body": str(exec_code),
+        }

@@ -6,6 +6,7 @@ from aws_cdk import (
     aws_apigateway as _gateway,
     aws_s3 as _s3,
     aws_dynamodb as _dynamodb,
+    aws_iam as _iam,
 )
 from constructs import Construct
 
@@ -26,18 +27,29 @@ class AwsDocumentGeneratorStack(Stack):
         document_table = _dynamodb.Table(
             self,
             TABLE_NAME,
+            table_name=TABLE_NAME,
             partition_key=_dynamodb.Attribute(
                 name="document_id", type=_dynamodb.AttributeType.STRING
             ),
         )
 
-        # The code that defines your stack goes here
         document_bucket = _s3.Bucket(
             self,
             "og-template-bucket",
             bucket_name="og-document-generator-bucket",
-            access_control=_s3.BucketAccessControl.BUCKET_OWNER_FULL_CONTROL,
+            # public_read_access=True,
         )
+
+        # document_bucket_policy = _iam.PolicyStatement(
+        #     actions=["s3:GetObject"],
+        #     resources=[f"{document_bucket.bucket_arn}/generated/*"],
+        #     effect=_iam.Effect.ALLOW,
+        #     principals=[_iam.AnyPrincipal()],
+        # )
+        #
+        # document_bucket.add_to_resource_policy(
+        #     permission=document_bucket_policy,
+        # )
 
         authorizer_function = _lambda.DockerImageFunction(
             self,
@@ -46,7 +58,7 @@ class AwsDocumentGeneratorStack(Stack):
             code=_lambda.DockerImageCode.from_image_asset(
                 directory="lambda/authorizer"
             ),
-            timeout=Duration.minutes(5),
+            timeout=Duration.minutes(2),
             memory_size=1024,
             architecture=_lambda.Architecture.ARM_64,
             # vpc=vpc,
@@ -109,6 +121,32 @@ class AwsDocumentGeneratorStack(Stack):
             identity_sources=[_gateway.IdentitySource.header("Authorization")],
         )
 
+        mock_cors_integration = _gateway.MockIntegration(
+            integration_responses=[
+                {
+                    "statusCode": "200",
+                    "responseParameters": {
+                        "method.response.header.Access-Control-Allow-Headers": "'*'",
+                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE'",
+                    },
+                }
+            ],
+            passthrough_behavior=_gateway.PassthroughBehavior.WHEN_NO_MATCH,
+            request_templates={"application/json": '{"statusCode": 200}'},
+        )
+
+        integration_responses = [
+            {
+                "statusCode": "200",
+                "responseParameters": {
+                    "method.response.header.Access-Control-Allow-Headers": True,
+                    "method.response.header.Access-Control-Allow-Origin": True,
+                    "method.response.header.Access-Control-Allow-Methods": True,
+                },
+            }
+        ]
+
         generate_pdf_resource = api.root.add_resource("generate")
         generate_function_integration = _gateway.LambdaIntegration(
             handler=generate_pdf_function, proxy=True
@@ -117,6 +155,9 @@ class AwsDocumentGeneratorStack(Stack):
             http_method="POST",
             authorizer=authorizer,
             integration=generate_function_integration,
+        )
+        generate_pdf_resource.add_method(
+            "OPTIONS", mock_cors_integration, method_responses=integration_responses
         )
 
         load_pdf_resource = api.root.add_resource("load")
@@ -129,4 +170,7 @@ class AwsDocumentGeneratorStack(Stack):
             authorizer=authorizer,
             integration=load_function_integration,
             request_parameters={"method.request.querystring.document": True},
+        )
+        load_pdf_resource.add_method(
+            "OPTIONS", mock_cors_integration, method_responses=integration_responses
         )

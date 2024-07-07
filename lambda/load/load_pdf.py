@@ -41,8 +41,21 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "OPTIONS,GET",
+            },
             "body": json.dumps(document),
         }
 
     except Exception as exec_code:
-        return {"statusCode": 500, "body": str(exec_code)}
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "OPTIONS,GET",
+            },
+            "body": str(exec_code),
+        }
